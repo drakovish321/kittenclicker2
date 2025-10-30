@@ -1,78 +1,127 @@
 // server.js
 const express = require('express');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
-const bcrypt = require('bcrypt');
-const WebSocket = require('ws');
-
 const app = express();
-const PORT = process.env.PORT || 8080;
-const usersFile = path.join(__dirname, 'users.json');
+const path = require('path');
+const fs = require('fs');
 
-// Ensure users.json exists
-if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, '[]');
+// Data file for persistent storage
+const DATA_FILE = path.join(__dirname, 'data.json');
 
-app.use(bodyParser.json());
-app.use(express.static(__dirname)); // serve html/css/js
+// Load or initialize data
+let data = {
+  totalPlayers: 0,
+  reviews: []
+};
+if (fs.existsSync(DATA_FILE)) {
+  try {
+    const loaded = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    data = { ...data, ...loaded };
+  } catch (err) {
+    console.error('Failed to read data.json, starting fresh:', err);
+  }
+}
 
-// --- SIGNUP ---
-app.post('/signup', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).send('Missing username or password');
+// In-memory runtime state
+let currentPlayers = 0; // Players currently connected
+let activePlayers = new Set(); // Track active player sessions
 
-    let users = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
-    if (users.some(u => u.username === username)) return res.status(400).send('Username taken');
+app.use(express.json());
+app.use(express.static('public')); // Serve frontend (main.html, etc.)
 
-    try {
-        const passwordHash = await bcrypt.hash(password, 10);
-        const newUser = {
-            id: 'u_' + Date.now(),
-            username,
-            passwordHash,
-            displayName: username,
-            role: 'agent',
-            createdAt: new Date().toISOString()
-        };
-        users.push(newUser);
-        fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-        res.send('ok');
-    } catch (err) {
-        res.status(500).send('Server error');
-    }
+// Middleware to track active players
+app.use((req, res, next) => {
+  const clientId = req.headers['x-client-id'] || Date.now() + Math.random();
+
+  // Add player to active set
+  activePlayers.add(clientId);
+  currentPlayers = activePlayers.size;
+
+  // Remove player when connection closes
+  req.on('close', () => {
+    activePlayers.delete(clientId);
+    currentPlayers = activePlayers.size;
+  });
+
+  next();
 });
 
-// --- LOGIN ---
-app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).send('Missing username or password');
-
-    const users = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
-    const user = users.find(u => u.username === username);
-    if (!user) return res.status(400).send('Invalid username or password');
-
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(400).send('Invalid username or password');
-
-    res.send({ status: 'ok', username: user.username });
+// Serve main.html at root
+app.get('/', (req, res) => {
+  data.totalPlayers++;
+  saveData();
+  res.sendFile(path.join(__dirname, 'public', 'main.html'));
 });
 
-// --- Serve HTML pages ---
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
-app.get('/index.html', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-// --- Start HTTP server ---
-const server = app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+// Endpoint: Get current + total player count
+app.get('/player-count', (req, res) => {
+  res.json({
+    current: currentPlayers,
+    total: data.totalPlayers
+  });
 });
 
-// --- WebSocket server for real-time chat ---
-const wss = new WebSocket.Server({ server });
+// Endpoint: Real-time player count via Server-Sent Events
+app.get('/player-count-stream', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
 
-wss.on('connection', (ws) => {
-    ws.on('message', (message) => {
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) client.send(message);
-        });
-    });
+  // Send initial count
+  res.write(`data: ${JSON.stringify({ current: currentPlayers, total: data.totalPlayers })}\n\n`);
+
+  // Send updates every 5 seconds
+  const interval = setInterval(() => {
+    res.write(`data: ${JSON.stringify({ current: currentPlayers, total: data.totalPlayers })}\n\n`);
+  }, 5000);
+
+  req.on('close', () => {
+    clearInterval(interval);
+  });
+});
+
+// Endpoint: Submit a review
+app.post('/submit-review', (req, res) => {
+  const { text, timestamp } = req.body;
+
+  if (!text || !timestamp) {
+    return res.json({ success: false, error: 'Missing required fields' });
+  }
+
+  data.reviews.push({
+    text: text.trim(),
+    timestamp
+  });
+
+  // Keep last 100 reviews
+  if (data.reviews.length > 100) {
+    data.reviews = data.reviews.slice(-100);
+  }
+
+  saveData();
+  res.json({ success: true });
+});
+
+// Endpoint: Get latest reviews
+app.get('/get-reviews', (req, res) => {
+  res.json({
+    reviews: data.reviews.slice(-10).reverse()
+  });
+});
+
+// Save data to file
+function saveData() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error('Failed to save data:', err);
+  }
+}
+
+// Start server
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`🐾 Kitten Clicker server running on port ${PORT}`);
 });
