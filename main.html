@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
+  <meta name="google-site-verification" content="P8-swUXw68i3R0JY_qb79WkkHeJkQke_jFussifj4yQ" />
+  <title>Kitten Clicker</title>
+  <link rel="icon" href="https://cdn.pixabay.com/photo/2025/10/17/11/52/11-52-18-844__340.png" type="image/png">
+
+  <!-- SEO -->
+  <meta name="description" content="Play Kitten Clicker — the cutest incremental clicker game! Click kittens, earn points, unlock breeds, and grow your kitten empire.">
+  <meta name="keywords" content="kitten clicker, clicker game, idle game, cat game, kitten game, incremental game, cute cats, online game, fangdootle">
+  <meta name="author" content="Fangdootle">
+  <meta name="robots" content="index, follow">
+
+  <style>
+    /* --- Base --- */
+    html, body { margin:0; padding:0; font-family: 'Arial', sans-serif; text-align:center; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { padding-top: 80px; background:#fce4ec; color:#880e4f; transition: background 0.3s, color 0.3s; }
+    h1 { margin-bottom: 0; font-size: 2.5em; }
+    #score { font-size: 1.5em; margin: 5px 0 10px; }
+    #stats { margin-bottom: 30px; }
+    img#kitten { width:300px; cursor:pointer; border-radius:20px; transition: transform 0.2s ease; position: relative; z-index: 10; }
+    .pulse { animation: pulseAnim 0.3s ease forwards; }
+    @keyframes pulseAnim { 0% {transform:scale(1);} 50% {transform:scale(1.2);} 100% {transform:scale(1);} }
+
+    /* --- Top buttons --- */
+    .top-buttons { position:fixed; top:20px; right:20px; display:flex; flex-direction:column; gap:10px; z-index:1001; }
+    .top-buttons button { padding:10px 20px; font-size:16px; border:none; border-radius:8px; cursor:pointer; transition: transform 0.15s; }
+    .top-buttons button:hover { transform: scale(1.05); }
+
+    /* --- Shop positioning --- */
+    #shopOverlay {
+      position: fixed;
+      top: 50%;
+      left: 20px;
+      transform: translateY(-50%);
+      width: 300px;
+      height: 80vh;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      padding: 20px;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    #shopOverlay.active {
+      display: flex;
+    }
+
+    .shop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .closeOverlay {
+      position: absolute; 
+      top: 15px; 
+      left: 15px; 
+      background: #b71c1c; 
+      color: white;
+      border: none; 
+      padding: 5px 10px; 
+      font-size: 18px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      z-index: 1001;
+      transition: background 0.2s;
+    }
+    
+    .closeOverlay:hover { 
+      background: #d32f2f; 
+    }
+
+    /* --- Shop Tabs --- */
+    .shop-tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f8bbd0;
+      padding-bottom: 10px;
+    }
+
+    .shop-tab {
+      padding: 8px 16px;
+      background: #f8bbd0;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 0 5px;
+      transition: background 0.2s;
+    }
+
+    .shop-tab:hover {
+      background: #e91e63;
+    }
+
+    .shop-tab.active {
+      background: #c2185b;
+      color: white;
+    }
+
+    .shop-tab-content {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .shop-tab-content.active {
+      display: block;
+    }
+
+    /* --- Shop Items --- */
+    .shop-item {
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      background: #f8bbd0;
+      position: relative;
+    }
+    
+    .shop-item strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+    
+    .shop-item button {
+      margin-top: 10px;
+      background: #c2185b;
+      color: white;
+      font-weight: bold;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    
+    .shop-item button:hover:not(:disabled) {
+      transform: scale(1.05);
+    }
+    
+    .shop-item button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .upgrade-count {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #c2185b;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    /* --- Overlays --- */
+    .overlay {
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(255,255,255,0.95); z-index:1000; padding:60px 20px 20px; overflow-y:auto; box-sizing:border-box; transition: opacity 0.3s;
+    }
+    
+    .overlay h2 { margin-bottom:30px; }
+    
+    /* --- Progress --- */
+    #progressOverlay textarea { width:90%; height:150px; margin-top:10px; font-family: monospace; font-size:14px; resize:none; }
+    #progressOverlay input { width:90%; padding:8px; font-size:16px; margin-top:10px; }
+    #progressOverlay button { margin-top:10px; padding:8px 16px; border-radius:6px; border:none; cursor:pointer; font-size:16px; }
+
+    /* --- Settings --- */
+    #settingsOverlay label, #settingsOverlay select, #settingsOverlay input, #settingsOverlay button { font-size:18px; }
+    #settingsOverlay select, #settingsOverlay input[type="range"] { margin-top:10px; padding:8px 12px; border-radius:6px; border:1px solid #880e4f; background:white; cursor:pointer; }
+    #settingsOverlay label { display:block; margin-top:16px; }
+    #settingsOverlay input[type="checkbox"] { margin-left:10px; margin-right:6px; }
+    #settingsOverlay .setting-row { margin-bottom:16px; }
+    #settingsOverlay .setting-title { font-weight:bold; display:inline-block; width:180px; text-align:left; }
+
+    /* --- Achievements --- */
+    #achievementsList { display:flex; flex-wrap:wrap; justify-content:center; gap:18px; max-width:700px; margin:0 auto; }
+    .achievement-card {
+      display:flex; align-items:center; gap:14px; width:320px; min-width:320px; max-width:320px; min-height:72px; max-height:72px;
+      padding:18px 20px; margin:8px 0; border-radius:15px; box-shadow:0 4px 12px rgba(140,0,70,0.12); font-size:18px; font-weight:500;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.3s; border:2px solid #f8bbd0; opacity:0.92; position:relative; box-sizing:border-box;
+    }
+    .achievement-card:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 10px 24px rgba(180,40,130,0.13); opacity:1; z-index:2; }
+    .achievement-card.locked { opacity:0.6; }
+    .achievement-icon { font-size:2em; margin-right:5px; filter: drop-shadow(0 1px 1px #fff5); text-shadow:0 2px 10px #fff8; width:40px; text-align:center; }
+
+    /* --- Breeds --- */
+    .breed-select-btn { padding:8px 22px; border-radius:12px; border:none; margin:10px 8px 0 8px; font-size:18px; font-weight:bold; cursor:pointer; transition: background 0.2s; }
+    .breed-lock { color:#aaa; font-size:20px; margin-left:6px; vertical-align:middle; }
+    .breed-event-tag { background:#ff5252; color:white; padding:3px 8px; border-radius:12px; font-size:12px; margin-left:8px; }
+
+    /* --- Mystery Kitten --- */
+    #mysteryKittenBtn { display:none; margin:20px 0 0 0; padding:14px 34px; font-size:20px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; transition: transform 0.2s; z-index: 1001; position: relative; }
+
+    /* --- Prestige --- */
+    #prestigeOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 350px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+      padding: 25px;
+      z-index: 1001;
+      display: none;
+      text-align: center;
+    }
+    
+    #prestigeOverlay.active {
+      display: block;
+    }
+    
+    #prestigeOverlay h2 {
+      margin-top: 0;
+      color: #c2185b;
+    }
+    
+    #prestigeInfo {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f8bbd0;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+    
+    #prestigeButton {
+      background: #c2185b;
+      color: white;
+      font-weight: bold;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 20px;
+      margin: 20px 0;
+      transition: transform 0.2s;
+    }
+    
+    #prestigeButton:hover {
+      transform: scale(1.05);
+    }
+    
+    #prestigeButton:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .prestige-bonus {
+      background: #e91e63;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    /* --- Themes --- */
+    body.theme-pink { background:#fce4ec; color:#880e4f; }
+    body.theme-blue { background:#e3f2fd; color:#1565c0; }
+    body.theme-dark { background:#121212; color:#bb86fc; }
+    body.theme-mint { background:#e0fdfa; color:#00796b; }
+    body.theme-orange { background:#fff3e0; color:#e65100; }
+
+    /* --- Responsive --- */
+    @media (max-width:600px){
+      #achievementsList { flex-direction:column; align-items:center; }
+      .achievement-card { min-width:0; width:98%; max-width:99vw; }
+      img#kitten { width:80%; max-width:300px; }
+      #shopOverlay {
+        left: 10px;
+        width: calc(100% - 20px);
+        height: 70vh;
+      }
+      #prestigeOverlay {
+        width: 90%;
+        left: 5%;
+        transform: translateY(-50%);
+      }
+    }
+
+    /* --- Footer --- */
+    #footer { position:fixed; bottom:10px; left:10px; font-size:12px; color:#880e4f; }
+    #footer a { color:#880e4f; text-decoration:none; }
+    #footer a:hover { text-decoration:underline; }
+    
+    /* --- Additional styling for shop items --- */
+    #shopOverlay .shop-item {
+      background: #f8bbd0;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    #shopOverlay .shop-item strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    #shopOverlay .shop-item button {
+      margin-top: 10px;
+      background: #c2185b;
+      color: white;
+      font-weight: bold;
+    }
+    
+    #shopOverlay .shop-item button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    /* --- Shop Tabs --- */
+    .shop-tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f8bbd0;
+    }
+
+    .shop-tab {
+      padding: 12px 20px;
+      background: #f8bbd0;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 5px;
+      transition: background 0.2s;
+    }
+
+    .shop-tab:hover {
+      background: #e91e63;
+    }
+
+    .shop-tab.active {
+      background: #c2185b;
+      color: white;
+    }
+
+    .shop-tab-content {
+      display: none;
+    }
+
+    .shop-tab-content.active {
+      display: block;
+    }
+    
+    /* --- Open Shop Button --- */
+    #openShopBtn {
+      position: fixed;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      padding: 10px 15px;
+      background: #c2185b;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      z-index: 999;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body class="theme-pink">
+<audio id="clickSound" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa6e3e.mp3" preload="auto"></audio>
+<h1>Kitten Clicker</h1>
+<p id="score">Kittens: 0</p>
+<p id="stats">Click Value: <span id="clickValue">1</span> | CPS: <span id="autoClickers">0</span></p>
+<img id="kitten" src="https://cdn.pixabay.com/photo/2017/11/09/21/41/american-shorthair-2934720_1280.jpg" alt="American Shorthair Kitten" />
+<button id="mysteryKittenBtn">🐾 Mystery Kitten</button>
+
+<!-- Open Shop Button -->
+<button id="openShopBtn">🛒 Shop</button>
+
+<!-- Prestige Overlay -->
+<div id="prestigeOverlay">
+  <h2>Prestige</h2>
+  <div id="prestigeInfo">
+    <p>Reset your progress for permanent bonuses!</p>
+    <p>Current Prestige Level: <span id="prestigeLevel">0</span></p>
+    <p>Required Kittens: <span id="prestigeRequirement">1000000</span></p>
+  </div>
+  <div id="prestigeBonuses">
+    <div class="prestige-bonus">+10% Click Value</div>
+    <div class="prestige-bonus">+5% CPS</div>
+    <div class="prestige-bonus">+20% Score Multiplier</div>
+  </div>
+  <button id="prestigeButton">Prestige Now!</button>
+  <button class="closeOverlay" onclick="closeOverlay('prestigeOverlay')">×</button>
+</div>
+
+<!-- Shop Overlay -->
+<div id="shopOverlay">
+  <div class="shop-header">
+    <h2>Kitten Shop</h2>
+    <button class="closeOverlay" onclick="closeOverlay('shopOverlay')">×</button>
+  </div>
+  
+  <div class="shop-tabs">
+    <div class="shop-tab active" id="tabClickValue" onclick="showShopTab('clickValue')">Click Value</div>
+    <div class="shop-tab" id="tabAuto" onclick="showShopTab('auto')">Auto Upgrades</div>
+    <div class="shop-tab" id="tabBonus" onclick="showShopTab('bonus')">Bonus Upgrades</div>
+    <div class="shop-tab" id="tabReviews" onclick="showShopTab('reviews')">Reviews</div>
+  </div>
+  
+  <div id="shopContent" class="shop-content">
+    <div id="clickValueContent" class="shop-tab-content active">
+      <div class="shop-item"><strong>Milk Bowl</strong><br />+0.5 click value<br />
+        <button onclick="buyUpgrade('milkBowl', 0.5)" id="milkBowlBtn">Buy for <span id="milkBowlCost">25</span></button>
+        <div class="upgrade-count" id="milkBowlCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Cat Food</strong><br />+2 click value<br />
+        <button onclick="buyUpgrade('catFood', 2)" id="catFoodBtn">Buy for <span id="catFoodCost">115</span></button>
+        <div class="upgrade-count" id="catFoodCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Scratcher</strong><br />+7 click value<br />
+        <button onclick="buyUpgrade('scratcher', 7)" id="scratcherBtn">Buy for <span id="scratcherCost">700</span></button>
+        <div class="upgrade-count" id="scratcherCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Kitten Factory</strong><br />+15 click value<br />
+        <button onclick="buyUpgrade('kittenFactory', 15)" id="kittenFactoryBtn">Buy for <span id="kittenFactoryCost">5000</span></button>
+        <div class="upgrade-count" id="kittenFactoryCount">0</div>
+      </div>
+      <div class="shop-item"><strong>City of Kittens</strong><br />+30 click value<br />
+        <button onclick="buyUpgrade('cityOfKittens', 30)" id="cityOfKittensBtn">Buy for <span id="cityOfKittensCost">30000</span></button>
+        <div class="upgrade-count" id="cityOfKittensCount">0</div>
+      </div>
+      <div class="shop-item"><strong>A World of Meows</strong><br />+80 click value<br />
+        <button onclick="buyUpgrade('worldOfMeows', 80)" id="worldOfMeowsBtn">Buy for <span id="worldOfMeowsCost">200000</span></button>
+        <div class="upgrade-count" id="worldOfMeowsCount">0</div>
+      </div>
+    </div>
+    
+    <div id="autoContent" class="shop-tab-content">
+      <div class="shop-item"><strong>Auto-Mouse</strong><br />+5 CPS<br />
+        <button onclick="buyAutoClicker()" id="autoClickerBtn">Buy for <span id="autoClickerCost">2000</span></button>
+        <div class="upgrade-count" id="autoClickerCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Auto-Kitten Farm</strong><br />+7 CPS<br />
+        <button onclick="buyAutoKittenFarm()" id="autoKittenFarmBtn">Buy for <span id="autoKittenFarmCost">15000</span></button>
+        <div class="upgrade-count" id="autoKittenFarmCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Kitten Planet</strong><br />+20 CPS<br />
+        <button onclick="buyKittenPlanet()" id="kittenPlanetBtn">Buy for <span id="kittenPlanetCost">1000000</span></button>
+        <div class="upgrade-count" id="kittenPlanetCount">0</div>
+      </div>
+    </div>
+    
+    <div id="bonusContent" class="shop-tab-content">
+      <div class="shop-item"><strong>Speed Boost</strong><br />+5% click value<br />
+        <button onclick="buyBonusUpgrade('speedBoost', 0.05)" id="speedBoostBtn">Buy for <span id="speedBoostCost">5000</span></button>
+        <div class="upgrade-count" id="speedBoostCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Double Points</strong><br />+10% score multiplier<br />
+        <button onclick="buyBonusUpgrade('doublePoints', 0.1)" id="doublePointsBtn">Buy for <span id="doublePointsCost">15000</span></button>
+        <div class="upgrade-count" id="doublePointsCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Golden Paws</strong><br />+20% CPS<br />
+        <button onclick="buyBonusUpgrade('goldenPaws', 0.2)" id="goldenPawsBtn">Buy for <span id="goldenPawsCost">50000</span></button>
+        <div class="upgrade-count" id="goldenPawsCount">0</div>
+      </div>
+    </div>
+    
+    <div id="reviewsContent" class="shop-tab-content">
+      <div style="padding: 15px;">
+        <h3 style="margin-top: 0;">Leave a Review</h3>
+        <textarea id="reviewText" placeholder="Share your thoughts about Kitten Clicker..." style="width: 100%; height: 100px; margin-bottom: 10px;"></textarea>
+        <button onclick="submitReview()" style="background: #c2185b; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">Submit Review</button>
+        
+        <h3 style="margin-top: 30px;">Recent Reviews</h3>
+        <div id="reviewsList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="top-buttons">
+  <button onclick="openOverlay('progressOverlay')">Progress</button>
+  <button onclick="openOverlay('settingsOverlay')">Settings</button>
+  <button onclick="openOverlay('achievementsOverlay')">Achievements</button>
+  <button onclick="openOverlay('breedsOverlay')">Breeds</button>
+  <button onclick="openOverlay('prestigeOverlay')">Prestige</button>
+</div>
+
+<!-- Footer with player count and version -->
+<div id="footer">
+  <div>Players: <span id="currentPlayers">Loading...</span> | Total: <span id="totalPlayers">Loading...</span></div>
+  <div>Version: V1.32 | <a href="https://kittenclicker.onrender.com/about.html" target="_blank">About</a></div>
+</div>
+
+<!-- Progress Overlay -->
+<div id="progressOverlay" class="overlay">
+  <button class="closeOverlay" onclick="closeOverlay('progressOverlay')">×</button>
+  <h2>Save / Load Progress</h2>
+  <button onclick="exportSave()">Get Save Code</button><br />
+  <textarea id="saveCodeBox" readonly placeholder="Your save code will appear here after clicking 'Get Save Code'"></textarea><br />
+  <input type="text" id="loadSaveCode" placeholder="Paste your save code here" />
+  <button onclick="loadSave()">Load Save Code</button>
+</div>
+
+<!-- Settings Overlay -->
+<div id="settingsOverlay" class="overlay">
+  <button class="closeOverlay" onclick="closeOverlay('settingsOverlay')">×</button>
+  <h2>Settings</h2>
+  <div class="setting-row">
+    <label for="themeSelect"><span class="setting-title">Color Theme:</span></label>
+    <select id="themeSelect">
+      <option value="pink" selected>Pink</option>
+      <option value="blue">Blue</option>
+      <option value="dark">Dark</option>
+      <option value="mint">Mint</option>
+      <option value="orange">Orange</option>
+    </select>
+  </div>
+  <div class="setting-row">
+    <label><span class="setting-title">Floating Scores:</span>
+      <input type="checkbox" id="floatScoreToggle" checked>
+      Show
+    </label>
+  </div>
+  <div class="setting-row">
+    <label for="notifVolume"><span class="setting-title">Notification Volume:</span></label>
+    <input type="range" min="0" max="1" step="0.01" id="notifVolume" value="1">
+  </div>
+  <div class="setting-row">
+    <label><span class="setting-title">Disable Animations:</span>
+      <input type="checkbox" id="disableAnimations">
+    </label>
+  </div>
+  <div class="setting-row">
+    <label><span class="setting-title">Console:</span></label>
+    <input type="text" id="consoleInput" placeholder="Type 'qwertycps=number' or 'qwertycv=number'" style="display:none;">
+    <button onclick="executeConsoleCommand()" id="consoleButton" style="display:none;">Execute</button>
+    <div id="consoleOutput" style="margin-top:10px; font-family:monospace; max-height:150px; overflow-y:auto;"></div>
+  </div>
+  <div class="setting-row">
+    <button onclick="resetProgress()" style="background:#b71c1c;color:#fff;">Reset Progress</button>
+  </div>
+</div>
+
+<!-- Achievements Overlay -->
+<div id="achievementsOverlay" class="overlay">
+  <button class="closeOverlay" onclick="closeOverlay('achievementsOverlay')">×</button>
+  <h2>Achievements</h2>
+  <div id="achievementsList"></div>
+</div>
+
+<!-- Breeds Overlay -->
+<div id="breedsOverlay" class="overlay">
+  <button class="closeOverlay" onclick="closeOverlay('breedsOverlay')">×</button>
+  <h2>Cat Breeds</h2>
+  <div class="shop-tabs">
+    <div class="shop-tab active" id="tabBreeds" onclick="showBreedsTab('breeds')">Breeds</div>
+    <div class="shop-tab" id="tabEvents" onclick="showBreedsTab('events')">Events</div>
+  </div>
+  <div id="breedsContent" class="shop-content">
+    <div id="breedsList"></div>
+  </div>
+  <div id="eventsContent" class="shop-content" style="display:none;">
+    <!-- Halloween cat section removed -->
+  </div>
+</div>
+
+<script>
+  // All your JavaScript code here (same as before)
+  let kittens = 0, clickValue = 1;
+  let upgrades = {milkBowl:0,catFood:0,scratcher:0,kittenFactory:0,cityOfKittens:0,worldOfMeows:0,autoClicker:0,autoKittenFarm:0,kittenPlanet:0};
+  let upgradeCosts = {milkBowl:25,catFood:115,scratcher:700,kittenFactory:5000,cityOfKittens:30000,worldOfMeows:200000,autoClicker:2000,autoKittenFarm:15000,kittenPlanet:1000000};
+  let selectedBreed = "american_shorthair";
+ let breedsUnlocked = { 
+    american_shorthair: true, 
+    maine_coon: false, 
+    siamese: false,
+    himalayan: false,
+    halloween_cat: false
+};
+let breedImages = {
+    american_shorthair: "https://cdn.pixabay.com/photo/2017/11/09/21/41/american-shorthair-2934720_1280.jpg",
+    maine_coon: "https://cdn.pixabay.com/photo/2021/12/17/19/15/pet-6877246_1280.jpg",
+    siamese: "https://cdn.pixabay.com/photo/2017/02/15/12/12/cat-2068462_1280.jpg",
+    himalayan: "https://cdn.pixabay.com/photo/2016/03/24/21/21/cat-1277665_1280.jpg",
+    halloween_cat: "https://cdn.pixabay.com/photo/2022/08/06/15/46/halloween-7368864_1280.jpg"
+};
+let breedNames = {
+    american_shorthair: "American Shorthair",
+    maine_coon: "Maine Coon",
+    siamese: "Siamese",
+    himalayan: "Himalayan",
+    halloween_cat: "Halloween Cat"
+};
+let extraCPSBreed = {
+    american_shorthair: 0,
+    maine_coon: 5,
+    siamese: 20,
+    himalayan: 7,
+    halloween_cat: 100
+};
+  let achievementsData = [
+    { id: 'click1', text: 'CLICK: Click the kitten!', achieved: false, condition: () => kittens > 0 },
+    { id: 'milkBowl1', text: 'You have to start somewhere: Buy your first Milk Bowl', achieved: false, condition: () => upgrades.milkBowl >= 1 },
+    { id: 'score100', text: 'Kittens: 100 points', achieved: false, condition: () => kittens >= 100 },
+    { id: 'score1000', text: 'Kittens: 1000 points', achieved: false, condition: () => kittens >= 1000 },
+    { id: 'click10', text: 'Get 10 click value', achieved: false, condition: () => clickValue >= 10 },
+    { id: 'auto1', text: 'Buy your first Auto-Mouse', achieved: false, condition: () => upgrades.autoClicker >= 1 },
+    { id: 'truepower', text: 'True Power: Select a new kitten breed!', achieved: false, condition: () => selectedBreed !== "american_shorthair" },
+    { id: 'tenk', text: '10k: Get 10000 kittens!', achieved: false, condition: () => kittens >= 10000 },
+    { id: 'mystery1', text: 'Take a chance: Try the Mystery Kitten!', achieved: false, condition: () => window.usedMysteryKitten },
+    { id: 'click100k', text: 'Dedicated Paw-sion: Reach 100,000 clicks!', achieved: false, condition: () => kittens >= 100000 },
+    { id: 'halloween_unlock', text: 'Spooky Surprise: Unlock the Halloween Cat!', achieved: false, condition: () => breedsUnlocked.halloween_cat },
+    { id: 'click500', text: 'Click Master: Reach 500 clicks', achieved: false, condition: () => kittens >= 500 },
+    { id: 'click5000', text: 'Click Expert: Reach 5000 clicks', achieved: false, condition: () => kittens >= 5000 },
+    { id: 'click25000', text: 'Click Pro: Reach 25000 clicks', achieved: false, condition: () => kittens >= 25000 },
+    { id: 'auto5', text: 'Auto Enthusiast: Buy 5 Auto-Mouses', achieved: false, condition: () => upgrades.autoClicker >= 5 },
+    { id: 'auto10', text: 'Auto Fan: Buy 10 Auto-Mouses', achieved: false, condition: () => upgrades.autoClicker >= 10 },
+    { id: 'auto20', text: 'Auto Master: Buy 20 Auto-Mouses', achieved: false, condition: () => upgrades.autoClicker >= 20 },
+    
+    // New achievements
+    { id: 'million_paw', text: 'Million Paw | 1,000,000 clicks', achieved: false, condition: () => kittens >= 1000000 },
+    { id: 'lazy_cat', text: 'Lazy Cat | Stay idle for 1 minute', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'deep_sleeper', text: 'Deep Sleeper | Stay idle for 10 minutes', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'sleep_champion', text: 'Sleep Champion | Stay idle for 1 hour', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'fast_paws', text: 'Fast Paws | Click 100 times in 10 seconds', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'blazing_claws', text: 'Blazing Claws | Click 500 times in 30 seconds', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'double_trouble', text: 'Double Trouble | Own 2 upgrades', achieved: false, condition: () => Object.values(upgrades).filter(u => u > 0).length >= 2 },
+    { id: 'shop_enthusiast', text: 'Shop Enthusiast | Buy 10 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 10 },
+    { id: 'toy_collector', text: 'Toy Collector | Buy 25 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 25 },
+    { id: 'fancy_feline', text: 'Fancy Feline | Buy 50 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 50 },
+    { id: 'luxury_cat', text: 'Luxury Cat | Buy 100 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 100 },
+    { id: 'prestige_beginner', text: 'Prestige Beginner | Prestige once', achieved: false, condition: () => prestigeLevel >= 1 },
+    { id: 'prestige_expert', text: 'Prestige Expert | Prestige 10 times', achieved: false, condition: () => prestigeLevel >= 10 },
+    { id: 'catnapper', text: 'Catnapper | Leave game idle and return later', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'offline_farmer', text: 'Offline Farmer | Idle bonus triggers while offline', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'dream_clicker', text: 'Dream Clicker | Trigger idle bonus 5 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'time_traveler', text: 'Time Traveler | Play for 1 hour total', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'endless_meow', text: 'Endless Meow | Play for 10 hours total', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'timeless_cat', text: 'Timeless Cat | Play for 100 hours total', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'achievement_hunter', text: 'Achievement Hunter | Unlock 10 achievements', achieved: false, condition: () => achievementsData.filter(a => a.achieved).length >= 10 },
+    { id: 'kitten_collector', text: 'Kitten Collector | Unlock 5 kittens', achieved: false, condition: () => Object.values(breedsUnlocked).filter(b => b).length >= 5 },
+    { id: 'breeder_supreme', text: 'Breeder Supreme | Unlock 10 kittens', achieved: false, condition: () => Object.values(breedsUnlocked).filter(b => b).length >= 10 },
+    { id: 'catnip_starter', text: 'Catnip Starter | Collect 1 catnip', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'catnip_dealer', text: 'Catnip Dealer | Collect 1,000 catnip', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'click_multiplier', text: 'Click Multiplier | Reach 10x click multiplier', achieved: false, condition: () => clickValue >= 10 },
+    { id: 'silent_paw', text: 'The Silent Paw | Play 10 minutes without clicking', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'hyperactive_kitty', text: 'Hyperactive Kitty | Click nonstop for 60 seconds', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'lucky_cat', text: 'Lucky Cat | Trigger your first bonus event', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'fortune_feline', text: 'Fortune Feline | Trigger 10 bonus events', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'toy_master', text: 'Toy Master | Buy 5 of the same upgrade', achieved: false, condition: () => Object.values(upgrades).some(u => u >= 5) },
+    { id: 'big_spender', text: 'Big Spender | Spend 10,000 coins in shop', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'rich_kitty', text: 'Rich Kitty | Reach 100,000 coins', achieved: false, condition: () => kittens >= 100000 },
+    { id: 'quick_buyer', text: 'Quick Buyer | Buy 5 upgrades in 10 seconds', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'shopping_spree', text: 'Shopping Spree | Buy 25 upgrades in 1 minute', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'mega_shopper', text: 'Mega Shopper | Buy 50 upgrades in 5 minutes', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'saver', text: 'Saver | Save your game once', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'dedicated_saver', text: 'Dedicated Saver | Save your game 10 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'click_marathon', text: 'Click Marathon | Click 10,000 times total', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'click_overload', text: 'Click Overload | Click 100,000 times total', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'click_legend', text: 'Click Legend | Click 1,000,000 times total', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'kitten_trainer', text: 'Kitten Trainer | Upgrade a kitten 5 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'apprentice_trainer', text: 'Apprentice Trainer | Upgrade a kitten 25 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'master_trainer', text: 'Master Trainer | Upgrade a kitten 100 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'auto_clicker', text: 'Auto Clicker | Buy first auto-click upgrade', achieved: false, condition: () => upgrades.autoClicker >= 1 },
+    { id: 'auto_click_master', text: 'Auto Click Master | Buy 10 auto-click upgrades', achieved: false, condition: () => upgrades.autoClicker >= 10 },
+    { id: 'combo_clicker', text: 'Combo Clicker | Click while idle bonus is active', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'idle_champion', text: 'Idle Champion | Trigger idle bonus 3 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'idle_master', text: 'Idle Master | Trigger idle bonus 10 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'multi_upgrade', text: 'Multi-Upgrade | Buy 3 different upgrades in same session', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'upgrade_hoarder', text: 'Upgrade Hoarder | Own 25 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 25 },
+    { id: 'upgrade_collector', text: 'Upgrade Collector | Own 50 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 50 },
+    { id: 'coin_collector', text: 'Coin Collector | Collect 100 coins in one session', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'coin_hoarder', text: 'Coin Hoarder | Collect 1,000 coins in one session', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'quick_prestige', text: 'Quick Prestige | Prestige within 10 minutes of start', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'prestige_hero', text: 'Prestige Hero | Prestige 5 times in one day', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'kitten_army', text: 'Kitten Army | Own 10 kittens', achieved: false, condition: () => Object.values(breedsUnlocked).filter(b => b).length >= 10 },
+    { id: 'cat_family', text: 'Cat Family | Own 25 kittens', achieved: false, condition: () => Object.values(breedsUnlocked).filter(b => b).length >= 25 },
+    { id: 'curious_kitten', text: 'Curious Kitten | Click on 10 hidden easter eggs', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'detective_cat', text: 'Detective Cat | Find 50 hidden easter eggs', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'hidden_collector', text: 'Hidden Collector | Unlock 5 secret kittens', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'quick_upgrade', text: 'Quick Upgrade | Upgrade a kitten within 10 minutes of unlocking it', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'persistent_player', text: 'Persistent Player | Play 1 hour straight', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'marathon_player', text: 'Marathon Player | Play 5 hours straight', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'beginner_buyer', text: 'Beginner Buyer | Buy 5 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 5 },
+    { id: 'dedicated_buyer', text: 'Dedicated Buyer | Buy 25 upgrades', achieved: false, condition: () => Object.values(upgrades).reduce((a, b) => a + b, 0) >= 25 },
+    { id: 'time_spender', text: 'Time Spender | Play 5 minutes in a row', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'time_lord', text: 'Time Lord | Play 1 hour in a row', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'kitten_apprentice', text: 'Kitten Apprentice | Unlock 1 kitten upgrade', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'kitten_specialist', text: 'Kitten Specialist | Unlock 5 kitten upgrades', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'kitten_master', text: 'Kitten Master | Unlock 10 kitten upgrades', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'first_auto_click', text: 'First Auto-Click | Buy first auto-clicker', achieved: false, condition: () => upgrades.autoClicker >= 1 },
+    { id: 'auto_click_enthusiast', text: 'Auto Click Enthusiast | Buy 5 auto-clickers', achieved: false, condition: () => upgrades.autoClicker >= 5 },
+    { id: 'auto_click_tycoon', text: 'Auto Click Tycoon | Buy 10 auto-clickers', achieved: false, condition: () => upgrades.autoClicker >= 10 },
+    { id: 'click_streak', text: 'Click Streak | Click 100 times without missing', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'big_click_streak', text: 'Big Click Streak | Click 500 times without missing', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'coin_rain', text: 'Coin Rain | Collect 500 coins in one session', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'coin_storm', text: 'Coin Storm | Collect 2,000 coins in one session', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'upgrade_combo', text: 'Upgrade Combo | Buy 3 upgrades within 30 seconds', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'upgrade_frenzy', text: 'Upgrade Frenzy | Buy 10 upgrades within 5 minutes', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'save_master', text: 'Save Master | Save your game 5 times in a row', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'save_legend', text: 'Save Legend | Save your game 20 times total', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'idle_beginner', text: 'Idle Beginner | Trigger idle bonus once', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'idle_expert', text: 'Idle Expert | Trigger idle bonus 20 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'idle_legend', text: 'Idle Legend | Trigger idle bonus 50 times', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'session_starter', text: 'Session Starter | Play 1 session', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'session_enthusiast', text: 'Session Enthusiast | Play 5 sessions', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'session_veteran', text: 'Session Veteran | Play 25 sessions', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'session_master', text: 'Session Master | Play 50 sessions', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'secret_clicker', text: 'Secret Clicker | Find 1 hidden easter egg', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'secret_collector', text: 'Secret Collector | Find 5 hidden easter eggs', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'secret_expert', text: 'Secret Expert | Find 10 hidden easter eggs', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'hidden_master', text: 'Hidden Master | Find 25 hidden easter eggs', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'quick_coin', text: 'Quick Coin | Collect 100 coins within 30 seconds', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'quick_kitty', text: 'Quick Kitty | Unlock 1 kitten within 5 minutes', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'quick_prestige_ii', text: 'Quick Prestige II | Prestige 3 times in one hour', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'persistent_saver', text: 'Persistent Saver | Save 10 times while offline', achieved: false, condition: () => false }, // Will be tracked separately
+    { id: 'true_purrfection', text: 'True Purrfection | Unlock 50 achievements (action-based only) and give full achievements section', achieved: false, condition: () => achievementsData.filter(a => a.achieved).length >= 50 },
+    { id: 'reviewer', text: 'Reviewer | Leave your first review', achieved: false, condition: () => window.userHasReviewed }
+  ];
+  window.usedMysteryKitten = false;
+  window.userHasReviewed = false;
+
+  // Settings State
+  let userSettings = {
+    theme: "pink",
+    floatScore: true,
+    notifVolume: 1,
+    disableAnimations: false
+  };
+
+  // Bonus upgrades data
+  let bonusUpgrades = {
+    speedBoost: 0,
+    doublePoints: 0,
+    goldenPaws: 0
+  };
+  
+  let bonusUpgradeCosts = {
+    speedBoost: 5000,
+    doublePoints: 15000,
+    goldenPaws: 50000
+  };
+
+  // Prestige system
+  let prestigeLevel = 0;
+  let prestigeBonuses = {
+    clickValue: 0.10,   // +10% click value
+    cps: 0.05,         // +5% CPS
+    scoreMultiplier: 0.20 // +20% score multiplier
+  };
+
+  // -- UI elements --
+  const scoreEl = document.getElementById('score');
+  const clickValueEl = document.getElementById('clickValue');
+  const autoClickersEl = document.getElementById('autoClickers');
+  const kittenImg = document.getElementById('kitten');
+  const clickSound = document.getElementById('clickSound');
+  const mysteryKittenBtn = document.getElementById('mysteryKittenBtn');
+  const openShopBtn = document.getElementById('openShopBtn');
+  const shopOverlay = document.getElementById('shopOverlay');
+  const prestigeOverlay = document.getElementById('prestigeOverlay');
+  const prestigeButton = document.getElementById('prestigeButton');
+  const prestigeLevelEl = document.getElementById('prestigeLevel');
+  const prestigeRequirementEl = document.getElementById('prestigeRequirement');
+
+  // Update player count from server
+  async function updatePlayerCount() {
+    try {
+      const response = await fetch('/player-count');
+      const data = await response.json();
+      document.getElementById('currentPlayers').textContent = data.current.toLocaleString();
+      document.getElementById('totalPlayers').textContent = data.total.toLocaleString();
+    } catch (error) {
+      console.error('Error fetching player count:', error);
+      document.getElementById('currentPlayers').textContent = 'Error';
+      document.getElementById('totalPlayers').textContent = 'Error';
+    }
+  }
+
+  // Real-time player count using Server-Sent Events
+  function startPlayerCountStream() {
+    const eventSource = new EventSource('/player-count-stream');
+    
+    eventSource.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        document.getElementById('currentPlayers').textContent = data.current.toLocaleString();
+        document.getElementById('totalPlayers').textContent = data.total.toLocaleString();
+      } catch (e) {
+        console.error('Error parsing player count:', e);
+      }
+    };
+    
+    eventSource.onerror = function(err) {
+      console.error('Player count stream error:', err);
+      // Attempt to reconnect after 5 seconds
+      setTimeout(startPlayerCountStream, 5000);
+    };
+  }
+
+  // Define all functions at the top to avoid scope issues
+  function openOverlay(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'block';
+    if(id === 'achievementsOverlay') renderAchievements();
+    if(id === 'breedsOverlay') renderBreeds();
+    if(id === 'settingsOverlay') updateSettingsUI();
+    if(id === 'prestigeOverlay') updatePrestigeInfo();
+  }
+  
+  function closeOverlay(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+    if (id === 'shopOverlay') {
+      openShopBtn.style.display = 'block';
+    }
+  }
+  
+  function showBreedsTab(tabName) {
+    // Hide all content
+    document.getElementById('breedsContent').classList.remove('active');
+    document.getElementById('eventsContent').classList.remove('active');
+    
+    // Remove active class from all tabs
+    document.getElementById('tabBreeds').classList.remove('active');
+    document.getElementById('tabEvents').classList.remove('active');
+    
+    // Show selected content
+    document.getElementById(tabName + 'Content').classList.add('active');
+    
+    // Add active class to selected tab
+    document.getElementById('tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1)).classList.add('active');
+  }
+  
+  function showShopTab(tabName) {
+    // Hide all content
+    document.getElementById('clickValueContent').classList.remove('active');
+    document.getElementById('autoContent').classList.remove('active');
+    document.getElementById('bonusContent').classList.remove('active');
+    document.getElementById('reviewsContent').classList.remove('active');
+    
+    // Remove active class from all tabs
+    document.getElementById('tabClickValue').classList.remove('active');
+    document.getElementById('tabAuto').classList.remove('active');
+    document.getElementById('tabBonus').classList.remove('active');
+    document.getElementById('tabReviews').classList.remove('active');
+    
+    // Show selected content
+    document.getElementById(tabName + 'Content').classList.add('active');
+    
+    // Add active class to selected tab
+    document.getElementById('tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1)).classList.add('active');
+    
+    // Load reviews when reviews tab is selected
+    if (tabName === 'reviews') {
+      loadReviews();
+    }
+  }
+  
+  function renderAchievements() {
+    const container = document.getElementById('achievementsList');
+    container.innerHTML = '';
+    for (const ach of achievementsData) {
+      const card = document.createElement('div');
+      card.className = 'achievement-card ' + (ach.achieved ? 'achieved' : 'locked');
+      card.innerHTML = `<span class="achievement-icon">${ach.achieved ? '🏆' : '🔒'}</span><span>${ach.text}</span>`;
+      container.appendChild(card);
+    }
+  }
+  
+  function renderBreeds() {
+    const list = document.getElementById('breedsList');
+    list.innerHTML = '';
+
+    // Add all breeds here (excluding halloween_cat)
+    ["american_shorthair", "maine_coon", "siamese", "himalayan"].forEach(breed => {
+      const div = document.createElement('div');
+      div.style.margin = "28px 0 25px 0";
+      div.style.padding = "12px";
+      div.style.background = "#fff6f6";
+      div.style.borderRadius = "12px";
+      div.style.boxShadow = "0 2px 12px #f8bbd0";
+      div.style.maxWidth = "340px";
+      div.style.marginLeft = "auto";
+      div.style.marginRight = "auto";
+
+      let label = `<b>${breedNames[breed]}</b>`;
+
+      // Lock logic
+      if (!breedsUnlocked[breed]) {
+        if (breed === "maine_coon") {
+          label += `<span class="breed-lock">🔒 (3 achievements required)</span>`;
+        } else if (breed === "siamese") {
+          label += `<span class="breed-lock">🔒 (10 achievements required)</span>`;
+        } else if (breed === "himalayan") {
+          label += `<span class="breed-lock">🔒 (13 achievements required)</span>`;
+        }
+      }
+
+      // Bonus text
+      let bonusText = "";
+      if (breed === "maine_coon") bonusText = "<div style='font-size:15px;margin-top:4px;color:#ad1457;'><b>Bonus:</b> +5 CPS</div>";
+      if (breed === "siamese") bonusText = "<div style='font-size:15px;margin-top:4px;color:#ad1457;'><b>Bonus:</b> +20 CPS</div>";
+      if (breed === "himalayan") bonusText = "<div style='font-size:15px;margin-top:4px;color:#ad1457;'><b>Bonus:</b> +30 Click Value & +7 CPS</div>";
+
+      div.innerHTML = `
+        <div style="font-size:20px;margin-bottom:8px;">${label}</div>
+        <img src="${breedImages[breed]}" alt="${breedNames[breed]}" style="width:120px;border-radius:14px;box-shadow:0 2px 8px #f8bbd0;">
+        <div style="margin-top:7px;">
+          <button class="breed-select-btn${selectedBreed===breed?" selected":""}"
+            onclick="selectBreed('${breed}')">
+            ${selectedBreed===breed ? "Selected" : "Select"}
+          </button>
+        </div>
+        ${bonusText}
+      `;
+
+      list.appendChild(div);
+    });
+
+    // Add Halloween Cat in the events section only (but we'll only show it during Halloween)
+    const halloweenDiv = document.createElement('div');
+    halloweenDiv.style.margin = "28px 0 25px 0";
+    halloweenDiv.style.padding = "12px";
+    halloweenDiv.style.background = "#fff6f6";
+    halloweenDiv.style.borderRadius = "12px";
+    halloweenDiv.style.boxShadow = "0 2px 12px #f8bbd0";
+    halloweenDiv.style.maxWidth = "340px";
+    halloweenDiv.style.marginLeft = "auto";
+    halloweenDiv.style.marginRight = "auto";
+
+    let halloweenLabel = `<b>${breedNames.halloween_cat}</b>`;
+    
+    // Add event tag for Halloween cat
+    const now = new Date();
+    const isHalloween = (now.getMonth() === 9 && now.getDate() >= 20 && now.getDate() <= 31) || 
+                        (now.getMonth() === 10 && now.getDate() <= 1);
+    
+    if (isHalloween) {
+      halloweenLabel += `<span class="breed-event-tag">EVENT</span>`;
+    }
+
+    // Lock logic for Halloween cat
+    if (!breedsUnlocked.halloween_cat) {
+      if (isHalloween) {
+        halloweenLabel += `<span class="breed-lock">🔒 (100k score & 15 achievements required)</span>`;
+      } else {
+        halloweenLabel += `<span class="breed-lock">🔒 (Only available Oct 20-31)</span>`;
+      }
+    }
+
+    // Only show Halloween cat during Halloween season
+    if (isHalloween) {
+      halloweenDiv.innerHTML = `
+        <div style="font-size:20px;margin-bottom:8px;">${halloweenLabel}</div>
+        <img src="${breedImages.halloween_cat}" alt="${breedNames.halloween_cat}" style="width:120px;border-radius:14px;box-shadow:0 2px 8px #f8bbd0;">
+        <div style="margin-top:7px;">
+          <button class="breed-select-btn${selectedBreed==='halloween_cat'?" selected":""}"
+            onclick="selectBreed('halloween_cat')">
+            ${selectedBreed==='halloween_cat' ? "Selected" : "Select"}
+          </button>
+        </div>
+        <div style='font-size:15px;margin-top:4px;color:#ad1457;'><b>Bonus:</b> +100 CPS & +100 Click Value</div>
+      `;
+      
+      // Add to breedsList instead of eventsContent
+      list.appendChild(halloweenDiv);
+    }
+
+    // Hide the events tab if there's nothing to show
+    if (!isHalloween) {
+      document.getElementById('tabEvents').style.display = 'none';
+    } else {
+      document.getElementById('tabEvents').style.display = 'inline-block';
+    }
+  }
+  
+  function showNotification(text) {
+    const notif = document.createElement('div');
+    notif.textContent = text;
+    notif.style.position = 'fixed';
+    notif.style.top = '80px';
+    notif.style.left = '50%';
+    notif.style.transform = 'translateX(-50%)';
+    notif.style.background = '#c2185b';
+    notif.style.color = 'white';
+    notif.style.padding = '10px 20px';
+    notif.style.borderRadius = '8px';
+    notif.style.zIndex = 2000;
+    notif.style.opacity = userSettings.notifVolume;
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 3000);
+  }
+  
+  function checkAchievements() {
+    let achievementsChanged = false;
+    
+    for (const ach of achievementsData) {
+      if (!ach.achieved && ach.condition()) {
+        ach.achieved = true;
+        achievementsChanged = true;
+      }
+    }
+    
+    // Check breed unlocks after checking all achievements
+    const breedUnlocks = [
+      { breed: "maine_coon", requiredAchievements: 3, message: "You unlocked the Maine Coon breed!" },
+      { breed: "siamese", requiredAchievements: 10, message: "You unlocked the Siamese breed!" },
+      { breed: "himalayan", requiredAchievements: 13, message: "You unlocked the Himalayan breed!" }
+    ];
+
+    for (const unlock of breedUnlocks) {
+      let achCount = achievementsData.reduce((acc, a) => acc + (a.achieved ? 1 : 0), 0);
+      if (!breedsUnlocked[unlock.breed] && achCount >= unlock.requiredAchievements) {
+        breedsUnlocked[unlock.breed] = true;
+        showNotification(unlock.message);
+        achievementsChanged = true;
+      }
+    }
+    
+    // Check if we can unlock Halloween cat
+    if (!breedsUnlocked.halloween_cat) {
+      const achievementCount = achievementsData.filter(a => a.achieved).length;
+      if (achievementCount >= 15) {
+        // Unlock Halloween cat if it's Halloween season
+        const now = new Date();
+        const isHalloween = (now.getMonth() === 9 && now.getDate() >= 20 && now.getDate() <= 31) || 
+                            (now.getMonth() === 10 && now.getDate() <= 1);
+        
+        if (isHalloween) {
+          breedsUnlocked.halloween_cat = true;
+          showNotification("You unlocked the Halloween Cat! It will remain unlocked.");
+          achievementsChanged = true;
+        }
+      }
+    }
+    
+    if (achievementsChanged) {
+      renderAchievements();
+      renderBreeds();
+    }
+  }
+  
+  // Ensure kitten click event is attached after DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    kittenImg.addEventListener('click', () => {
+      clickSound.currentTime = 0;
+      clickSound.volume = userSettings.notifVolume;
+      clickSound.play();
+      addScore(clickValue);
+      if(!userSettings.disableAnimations){
+        kittenImg.classList.add('pulse');
+        setTimeout(() => kittenImg.classList.remove('pulse'), 300);
+      }
+    });
+  });
+  
+  function addScore(amount) {
+    kittens += amount;
+    if(userSettings.floatScore)
+      showFloatingScore(amount);
+    updateUI();
+    checkAchievements();
+  }
+  
+  function showFloatingScore(amount) {
+    const floatEl = document.createElement('div');
+    floatEl.textContent = (amount >= 0 ? '+' : '') + Math.floor(amount);
+    floatEl.style.position = 'absolute';
+    floatEl.style.left = `${window.innerWidth/2}px`;
+    floatEl.style.top = `${kittenImg.getBoundingClientRect().top}px`;
+    floatEl.style.transform = 'translateX(-50%)';
+    floatEl.style.color = amount >= 0 ? '#c2185b' : '#b71c1c';
+    floatEl.style.fontWeight = 'bold';
+    floatEl.style.fontSize = '20px';
+    floatEl.style.zIndex = 2000;
+    document.body.appendChild(floatEl);
+    let top = floatEl.offsetTop, opacity = 1;
+    const anim = setInterval(() => {
+      top -= 1.5;
+      opacity -= 0.02;
+      floatEl.style.top = top + 'px';
+      floatEl.style.opacity = opacity;
+      if (opacity <= 0) { clearInterval(anim); floatEl.remove(); }
+    }, 16);
+  }
+  
+  // Calculate bonus multipliers
+  function calculateBonusMultipliers() {
+    let clickMultiplier = 1;
+    let scoreMultiplier = 1;
+    let cpsMultiplier = 1;
+    
+    // Apply prestige bonuses
+    clickMultiplier += prestigeBonuses.clickValue * prestigeLevel;
+    scoreMultiplier += prestigeBonuses.scoreMultiplier * prestigeLevel;
+    cpsMultiplier += prestigeBonuses.cps * prestigeLevel;
+    
+    if (bonusUpgrades.speedBoost > 0) {
+      clickMultiplier += bonusUpgrades.speedBoost * 0.05;
+    }
+    
+    if (bonusUpgrades.doublePoints > 0) {
+      scoreMultiplier += bonusUpgrades.doublePoints * 0.1;
+    }
+    
+    if (bonusUpgrades.goldenPaws > 0) {
+      cpsMultiplier += bonusUpgrades.goldenPaws * 0.2;
+    }
+    
+    return { clickMultiplier, scoreMultiplier, cpsMultiplier };
+  }
+  
+  function updateUI() {
+    let breedCPS = extraCPSBreed[selectedBreed] || 0;
+    
+    // Calculate bonus multipliers
+    const bonuses = calculateBonusMultipliers();
+
+    // --- Calculate total CPS ---
+    const totalCPS = (upgrades.autoClicker * 5 + 
+                      upgrades.autoKittenFarm * 7 + 
+                      upgrades.kittenPlanet * 20 + 
+                      breedCPS) * bonuses.cpsMultiplier;
+
+    // Format large numbers
+    function formatNumber(num) {
+      if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+      } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+      }
+      return Math.floor(num);
+    }
+    
+    scoreEl.textContent = `Kittens: ${formatNumber(kittens * bonuses.scoreMultiplier)}`;
+    
+    // --- Breed click bonus ---
+    let breedClickBonus = 0;
+    if (selectedBreed === 'siamese') {
+      breedClickBonus = 20;
+    } else if (selectedBreed === 'himalayan') {
+      breedClickBonus = 30;
+    } else if (selectedBreed === 'halloween_cat') {
+      breedClickBonus = 100;
+    }
+
+    // Apply click bonus multiplier
+    const finalClickValue = (clickValue + breedClickBonus) * bonuses.clickMultiplier;
+    clickValueEl.textContent = finalClickValue.toFixed(1);
+    
+    autoClickersEl.textContent = totalCPS.toFixed(1);
+    kittenImg.src = breedImages[selectedBreed];
+    
+    // Update upgrade costs
+    if(document.getElementById('milkBowlCost')) document.getElementById('milkBowlCost').textContent = upgradeCosts.milkBowl;
+    if(document.getElementById('catFoodCost')) document.getElementById('catFoodCost').textContent = upgradeCosts.catFood;
+    if(document.getElementById('scratcherCost')) document.getElementById('scratcherCost').textContent = upgradeCosts.scratcher;
+    if(document.getElementById('kittenFactoryCost')) document.getElementById('kittenFactoryCost').textContent = upgradeCosts.kittenFactory;
+    if(document.getElementById('cityOfKittensCost')) document.getElementById('cityOfKittensCost').textContent = upgradeCosts.cityOfKittens;
+    if(document.getElementById('worldOfMeowsCost')) document.getElementById('worldOfMeowsCost').textContent = upgradeCosts.worldOfMeows;
+    if(document.getElementById('autoClickerCost')) document.getElementById('autoClickerCost').textContent = upgradeCosts.autoClicker;
+    if(document.getElementById('autoKittenFarmCost')) document.getElementById('autoKittenFarmCost').textContent = upgradeCosts.autoKittenFarm;
+    if(document.getElementById('kittenPlanetCost')) document.getElementById('kittenPlanetCost').textContent = upgradeCosts.kittenPlanet;
+    if(document.getElementById('speedBoostCost')) document.getElementById('speedBoostCost').textContent = bonusUpgradeCosts.speedBoost;
+    if(document.getElementById('doublePointsCost')) document.getElementById('doublePointsCost').textContent = bonusUpgradeCosts.doublePoints;
+    if(document.getElementById('goldenPawsCost')) document.getElementById('goldenPawsCost').textContent = bonusUpgradeCosts.goldenPaws;
+    
+    // Update button states
+    if(document.getElementById('milkBowlBtn')) document.getElementById('milkBowlBtn').disabled = kittens < upgradeCosts.milkBowl;
+    if(document.getElementById('catFoodBtn')) document.getElementById('catFoodBtn').disabled = kittens < upgradeCosts.catFood;
+    if(document.getElementById('scratcherBtn')) document.getElementById('scratcherBtn').disabled = kittens < upgradeCosts.scratcher;
+    if(document.getElementById('kittenFactoryBtn')) document.getElementById('kittenFactoryBtn').disabled = kittens < upgradeCosts.kittenFactory;
+    if(document.getElementById('cityOfKittensBtn')) document.getElementById('cityOfKittensBtn').disabled = kittens < upgradeCosts.cityOfKittens;
+    if(document.getElementById('worldOfMeowsBtn')) document.getElementById('worldOfMeowsBtn').disabled = kittens < upgradeCosts.worldOfMeows;
+    if(document.getElementById('autoClickerBtn')) document.getElementById('autoClickerBtn').disabled = kittens < upgradeCosts.autoClicker;
+    if(document.getElementById('autoKittenFarmBtn')) document.getElementById('autoKittenFarmBtn').disabled = kittens < upgradeCosts.autoKittenFarm;
+    if(document.getElementById('kittenPlanetBtn')) document.getElementById('kittenPlanetBtn').disabled = kittens < upgradeCosts.kittenPlanet;
+    if(document.getElementById('speedBoostBtn')) document.getElementById('speedBoostBtn').disabled = kittens < bonusUpgradeCosts.speedBoost;
+    if(document.getElementById('doublePointsBtn')) document.getElementById('doublePointsBtn').disabled = kittens < bonusUpgradeCosts.doublePoints;
+    if(document.getElementById('goldenPawsBtn')) document.getElementById('goldenPawsBtn').disabled = kittens < bonusUpgradeCosts.goldenPaws;
+    
+    // Update upgrade counts
+    if(document.getElementById('milkBowlCount')) document.getElementById('milkBowlCount').textContent = upgrades.milkBowl;
+    if(document.getElementById('catFoodCount')) document.getElementById('catFoodCount').textContent = upgrades.catFood;
+    if(document.getElementById('scratcherCount')) document.getElementById('scratcherCount').textContent = upgrades.scratcher;
+    if(document.getElementById('kittenFactoryCount')) document.getElementById('kittenFactoryCount').textContent = upgrades.kittenFactory;
+    if(document.getElementById('cityOfKittensCount')) document.getElementById('cityOfKittensCount').textContent = upgrades.cityOfKittens;
+    if(document.getElementById('worldOfMeowsCount')) document.getElementById('worldOfMeowsCount').textContent = upgrades.worldOfMeows;
+    if(document.getElementById('autoClickerCount')) document.getElementById('autoClickerCount').textContent = upgrades.autoClicker;
+    if(document.getElementById('autoKittenFarmCount')) document.getElementById('autoKittenFarmCount').textContent = upgrades.autoKittenFarm;
+    if(document.getElementById('kittenPlanetCount')) document.getElementById('kittenPlanetCount').textContent = upgrades.kittenPlanet;
+    if(document.getElementById('speedBoostCount')) document.getElementById('speedBoostCount').textContent = bonusUpgrades.speedBoost;
+    if(document.getElementById('doublePointsCount')) document.getElementById('doublePointsCount').textContent = bonusUpgrades.doublePoints;
+    if(document.getElementById('goldenPawsCount')) document.getElementById('goldenPawsCount').textContent = bonusUpgrades.goldenPaws;
+    
+    // Update prestige button state
+    const requirement = Math.pow(10, 6 + prestigeLevel);
+    prestigeButton.disabled = kittens < requirement;
+    prestigeRequirementEl.textContent = requirement.toLocaleString();
+  }
+  
+  function updatePrestigeInfo() {
+    prestigeLevelEl.textContent = prestigeLevel;
+    const requirement = Math.pow(10, 6 + prestigeLevel);
+    prestigeRequirementEl.textContent = requirement.toLocaleString();
+    
+    // Update prestige bonuses display
+    const bonusesContainer = document.getElementById('prestigeBonuses');
+    bonusesContainer.innerHTML = `
+      <div class="prestige-bonus">+${(prestigeBonuses.clickValue * 100 * (prestigeLevel + 1)).toFixed(0)}% Click Value</div>
+      <div class="prestige-bonus">+${(prestigeBonuses.cps * 100 * (prestigeLevel + 1)).toFixed(0)}% CPS</div>
+      <div class="prestige-bonus">+${(prestigeBonuses.scoreMultiplier * 100 * (prestigeLevel + 1)).toFixed(0)}% Score Multiplier</div>
+    `;
+  }
+  
+  function buyUpgrade(name, increment) {
+    if (kittens >= upgradeCosts[name]) {
+      kittens -= upgradeCosts[name];
+      clickValue += increment;
+      upgrades[name]++;
+      upgradeCosts[name] = Math.ceil(upgradeCosts[name] * 1.2);
+      updateUI();
+    }
+  }
+  
+  function buyAutoClicker() {
+    if (kittens >= upgradeCosts.autoClicker) {
+      kittens -= upgradeCosts.autoClicker;
+      upgrades.autoClicker++;
+      upgradeCosts.autoClicker = Math.ceil(upgradeCosts.autoClicker * 1.2);
+      updateUI();
+    }
+  }
+  
+  function buyAutoKittenFarm() {
+    if (kittens >= upgradeCosts.autoKittenFarm) {
+      kittens -= upgradeCosts.autoKittenFarm;
+      upgrades.autoKittenFarm++;
+      upgradeCosts.autoKittenFarm = Math.ceil(upgradeCosts.autoKittenFarm * 1.2);
+      updateUI();
+    }
+  }
+  
+  function buyKittenPlanet() {
+    if (kittens >= upgradeCosts.kittenPlanet) {
+      kittens -= upgradeCosts.kittenPlanet;
+      upgrades.kittenPlanet++;
+      upgradeCosts.kittenPlanet = Math.ceil(upgradeCosts.kittenPlanet * 1.2);
+      updateUI();
+    }
+  }
+  
+  // Bonus upgrade purchase function
+  function buyBonusUpgrade(name, multiplier) {
+    if (kittens >= bonusUpgradeCosts[name]) {
+      kittens -= bonusUpgradeCosts[name];
+      bonusUpgrades[name]++;
+      bonusUpgradeCosts[name] = Math.ceil(bonusUpgradeCosts[name] * 1.2);
+      updateUI();
+    }
+  }
+  
+  setInterval(() => {
+    let breedCPS = extraCPSBreed[selectedBreed] || 0;
+    const totalCPS = upgrades.autoClicker * 5 + upgrades.autoKittenFarm * 7 + upgrades.kittenPlanet * 20 + breedCPS;
+    if (totalCPS > 0) { addScore(totalCPS); }
+  }, 1000);
+  
+  window.selectBreed = function(breed) {
+    if (!breedsUnlocked[breed]) return; // Do nothing if breed is locked
+
+    // Check if it's halloween cat and requirements are met
+    if (breed === 'halloween_cat') {
+      const now = new Date();
+      const isHalloween = (now.getMonth() === 9 && now.getDate() >= 20 && now.getDate() <= 31) || 
+                          (now.getMonth() === 10 && now.getDate() <= 1);
+      
+      // Check if it's Halloween season and requirements are met
+      if (!isHalloween) {
+        showNotification("Halloween Cat is only available from Oct 20-31!");
+        return;
+      }
+      
+      const achievementCount = achievementsData.filter(a => a.achieved).length;
+      if (kittens < 100000 || achievementCount < 15) {
+        showNotification("You need 100,000 kittens and 15 achievements to unlock the Halloween Cat!");
+        return;
+      }
+      
+      // Unlock the breed if requirements are met
+      if (!breedsUnlocked[breed]) {
+        breedsUnlocked[breed] = true;
+        showNotification("You unlocked the Halloween Cat! It will remain unlocked.");
+      }
+    }
+
+    // Remove the reset of clickValue here
+    // Instead, just update the breed and UI
+    if (selectedBreed !== breed) {
+        selectedBreed = breed;
+
+        // Breed-specific click bonus will be handled in updateUI()
+        // and we do NOT reset clickValue here.
+        // updateUI() will now handle the display with breed bonus.
+        updateUI();
+        checkAchievements();
+        renderBreeds();
+    }
+  };
+  
+  // Halloween cat unlock function removed - now only available during Halloween season
+  
+  function exportSave() {
+    const saveData = { kittens, clickValue, upgrades, upgradeCosts, selectedBreed, breedsUnlocked, achievementsData, userSettings, bonusUpgrades, bonusUpgradeCosts, prestigeLevel };
+    const saveString = btoa(JSON.stringify(saveData));
+    const textarea = document.getElementById('saveCodeBox');
+    textarea.value = saveString;
+    textarea.select();
+  }
+  
+  function loadSave() {
+    const input = document.getElementById('loadSaveCode').value;
+    try {
+      const data = JSON.parse(atob(input));
+      kittens = data.kittens || 0;
+      clickValue = data.clickValue || 1;
+      upgrades = data.upgrades || upgrades;
+      upgradeCosts = data.upgradeCosts || upgradeCosts;
+      selectedBreed = data.selectedBreed || "american_shorthair";
+      breedsUnlocked = data.breedsUnlocked || breedsUnlocked;
+      if (Array.isArray(data.achievementsData)) {
+        for (let ach of data.achievementsData) {
+          const found = achievementsData.find(a => a.id === ach.id);
+          if (found) found.achieved = ach.achieved;
+        }
+      }
+      if (data.userSettings) {
+        userSettings = data.userSettings;
+        applyTheme(userSettings.theme);
+      }
+      if (data.bonusUpgrades) bonusUpgrades = data.bonusUpgrades;
+      if (data.bonusUpgradeCosts) bonusUpgradeCosts = data.bonusUpgradeCosts;
+      if (data.prestigeLevel !== undefined) prestigeLevel = data.prestigeLevel;
+      updateUI();
+      renderAchievements();
+      renderBreeds();
+      updatePrestigeInfo();
+      alert('Save loaded!');
+    } catch (e) {
+      alert('Invalid save code.');
+    }
+  }
+
+  document.getElementById('saveCodeBox').addEventListener('click', function() {
+    this.select();
+  });
+
+  // --- SETTINGS LOGIC ---
+  function updateSettingsUI() {
+    document.getElementById('themeSelect').value = userSettings.theme;
+    document.getElementById('floatScoreToggle').checked = userSettings.floatScore;
+    document.getElementById('notifVolume').value = userSettings.notifVolume;
+    document.getElementById('disableAnimations').checked = userSettings.disableAnimations;
+  }
+  
+  document.getElementById('themeSelect').addEventListener('change', function() {
+    userSettings.theme = this.value;
+    applyTheme(userSettings.theme);
+    try { localStorage.setItem('kittenTheme', userSettings.theme); } catch (e) {}
+  });
+  
+  function applyTheme(theme) {
+    document.body.className = '';
+    document.body.classList.add('theme-' + theme);
+  }
+  
+  // Floating Score toggle
+  document.getElementById('floatScoreToggle').addEventListener('change', function() {
+    userSettings.floatScore = this.checked;
+  });
+  
+  // Notification volume
+  document.getElementById('notifVolume').addEventListener('input', function() {
+    userSettings.notifVolume = parseFloat(this.value);
+  });
+  
+  // Disable animations
+  document.getElementById('disableAnimations').addEventListener('change', function() {
+    userSettings.disableAnimations = this.checked;
+  });
+  
+  // Reset
+  function resetProgress() {
+    if(confirm('Are you sure you want to reset all progress?')) {
+      kittens = 0; clickValue = 1;
+      upgrades = {milkBowl:0,catFood:0,scratcher:0,kittenFactory:0,cityOfKittens:0,worldOfMeows:0,autoClicker:0,autoKittenFarm:0,kittenPlanet:0};
+      upgradeCosts = {milkBowl:25,catFood:115,scratcher:700,kittenFactory:5000,cityOfKittens:30000,worldOfMeows:200000,autoClicker:2000,autoKittenFarm:15000,kittenPlanet:1000000};
+      selectedBreed = "american_shorthair";
+      breedsUnlocked = { american_shorthair: true, maine_coon: false, siamese: false, himalayan: false, halloween_cat: false };
+      for(let a of achievementsData) a.achieved = false;
+      bonusUpgrades = { speedBoost: 0, doublePoints: 0, goldenPaws: 0 };
+      bonusUpgradeCosts = { speedBoost: 5000, doublePoints: 15000, goldenPaws: 50000 };
+      prestigeLevel = 0;
+      userSettings = {theme:"pink", floatScore:true, notifVolume:1, disableAnimations:false};
+      applyTheme(userSettings.theme);
+      updateUI(); renderAchievements(); renderBreeds(); updatePrestigeInfo();
+      try { localStorage.removeItem('kittenSave'); } catch(e){}
+    }
+  }
+
+  // --- SAVE/LOAD ON PAGE LOAD ---
+  window.addEventListener('load', () => {
+    try {
+      const saved = localStorage.getItem('kittenSave');
+      if (saved) {
+        const data = JSON.parse(atob(saved));
+        kittens = data.kittens || 0;
+        clickValue = data.clickValue || 1;
+        upgrades = data.upgrades || upgrades;
+        upgradeCosts = data.upgradeCosts || upgradeCosts;
+        selectedBreed = data.selectedBreed || "american_shorthair";
+        breedsUnlocked = data.breedsUnlocked || breedsUnlocked;
+        if (Array.isArray(data.achievementsData)) {
+          for (let ach of data.achievementsData) {
+            const found = achievementsData.find(a => a.id === ach.id);
+            if (found) found.achieved = ach.achieved;
+          }
+        }
+        if (data.userSettings) {
+          userSettings = data.userSettings;
+        }
+        if (data.bonusUpgrades) bonusUpgrades = data.bonusUpgrades;
+        if (data.bonusUpgradeCosts) bonusUpgradeCosts = data.bonusUpgradeCosts;
+        if (data.prestigeLevel !== undefined) prestigeLevel = data.prestigeLevel;
+      }
+    } catch (e) {}
+    try {
+      const savedTheme = localStorage.getItem('kittenTheme');
+      if (savedTheme) {
+        userSettings.theme = savedTheme;
+      }
+    } catch (e) {}
+    applyTheme(userSettings.theme);
+    updateSettingsUI();
+    updateUI();
+    renderAchievements();
+    renderBreeds();
+    updatePrestigeInfo();
+    updatePlayerCount();
+    startPlayerCountStream(); // Start real-time updates
+  });
+  
+  setInterval(() => {
+    try {
+      const saveData = { kittens, clickValue, upgrades, upgradeCosts, selectedBreed, breedsUnlocked, achievementsData, userSettings, bonusUpgrades, bonusUpgradeCosts, prestigeLevel };
+      localStorage.setItem('kittenSave', btoa(JSON.stringify(saveData)));
+    } catch (e) {}
+  }, 5000);
+
+  // --- MYSTERY KITTEN RANDOM SPAWN ---
+  let mysteryKittenTimeout = null;
+  function scheduleMysteryKitten() {
+    const randomDelay = Math.floor(Math.random() * 1000); // 0-999 ms
+    // For debug: const randomDelay = (10 + Math.random()*20)*1000;
+    mysteryKittenTimeout = setTimeout(() => {
+      mysteryKittenBtn.style.display = '';
+    }, randomDelay);
+  }
+  
+  // Hide the button & schedule first appearance on page load
+  window.addEventListener('load', () => {
+    mysteryKittenBtn.style.display = 'none';
+    if(mysteryKittenTimeout) clearTimeout(mysteryKittenTimeout);
+    scheduleMysteryKitten();
+  });
+
+  // MYSTERY KITTEN BUTTON LOGIC
+  mysteryKittenBtn.addEventListener('click', function() {
+    if (kittens < 1) {
+      showNotification('You need some kittens to risk!');
+      return;
+    }
+    window.usedMysteryKitten = true;
+    const rand = Math.random();
+    if (rand < 0.5) {
+      const gain = Math.floor(kittens * 0.17);
+      kittens += gain;
+      if(userSettings.floatScore) showFloatingScore(gain);
+      showNotification(`Mystery Kitten! You gained +${gain} kittens!`);
+    } else if (rand < 0.67) {
+      const loss = Math.floor(kittens * 0.17);
+      kittens -= loss;
+      if (kittens < 0) kittens = 0;
+      if(userSettings.floatScore) showFloatingScore(-loss);
+      showNotification(`Oh no! Mystery Kitten took -${loss} kittens!`);
+    } else {
+      showNotification('Mystery Kitten did nothing this time.');
+    }
+    updateUI();
+    checkAchievements();
+    // Hide the button and schedule the next spawn
+    this.style.display = 'none';
+    if (mysteryKittenTimeout) clearTimeout(mysteryKittenTimeout);
+    scheduleMysteryKitten();
+  });
+
+  // --- CONSOLE FUNCTIONALITY ---
+  let developerMode = false;
+  
+  // Developer mode toggle using Ctrl+Shift+D
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+      developerMode = !developerMode;
+      document.getElementById('consoleInput').style.display = developerMode ? 'block' : 'none';
+      document.getElementById('consoleButton').style.display = developerMode ? 'block' : 'none';
+      if (developerMode) {
+        showNotification('Developer mode enabled');
+      } else {
+        showNotification('Developer mode disabled');
+      }
+    }
+  });
+  
+  function executeConsoleCommand() {
+    if (!developerMode) return;
+    
+    const input = document.getElementById('consoleInput');
+    const output = document.getElementById('consoleOutput');
+    const command = input.value.trim().toLowerCase();
+    
+    if (!command) return;
+    
+    // Add command to output
+    const commandLine = document.createElement('div');
+    commandLine.textContent = '> ' + command;
+    commandLine.style.color = '#1565c0';
+    output.appendChild(commandLine);
+    
+    try {
+      if (command.startsWith('qwertycps=')) {
+        const value = parseFloat(command.substring(10));
+        if (isNaN(value) || value < 0) {
+          throw new Error('Invalid CPS value');
+        }
+        // Set CPS to the specified value
+        upgrades.autoClicker = Math.floor(value / 5);
+        upgrades.autoKittenFarm = Math.floor(value / 7);
+        upgrades.kittenPlanet = Math.floor(value / 20);
+        updateUI();
+        output.appendChild(createOutputLine(`CPS set to ${value}`));
+      } else if (command.startsWith('qwertycv=')) {
+        const value = parseFloat(command.substring(9));
+        if (isNaN(value) || value < 0) {
+          throw new Error('Invalid CV value');
+        }
+        // Set click value to the specified value
+        clickValue = value;
+        updateUI();
+        output.appendChild(createOutputLine(`Click Value set to ${value}`));
+      } else {
+        throw new Error('Unknown command. Use qwertycps=number or qwertycv=number');
+      }
+    } catch (error) {
+      output.appendChild(createOutputLine(`Error: ${error.message}`, 'red'));
+    }
+    
+    // Scroll to bottom
+    output.scrollTop = output.scrollHeight;
+    
+    // Clear input
+    input.value = '';
+  }
+
+  function createOutputLine(text, color = '#00796b') {
+    const line = document.createElement('div');
+    line.textContent = text;
+    line.style.color = color;
+    return line;
+  }
+
+  // Add event listener to console input
+  document.getElementById('consoleInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      executeConsoleCommand();
+    }
+  });
+
+  // Update player count periodically (fallback)
+  setInterval(updatePlayerCount, 30000);
+
+  // --- SHOP OPENING LOGIC ---
+  openShopBtn.addEventListener('click', function() {
+    shopOverlay.classList.add('active');
+    openShopBtn.style.display = 'none';
+  });
+
+  // --- PRESTIGE LOGIC ---
+  prestigeButton.addEventListener('click', function() {
+    const requirement = Math.pow(10, 6 + prestigeLevel);
+    if (kittens >= requirement) {
+      // Apply prestige bonuses
+      prestigeLevel++;
+      
+      // Reset kittens and upgrades but keep prestige bonuses
+      kittens = 0;
+      clickValue = 1;
+      upgrades = {milkBowl:0,catFood:0,scratcher:0,kittenFactory:0,cityOfKittens:0,worldOfMeows:0,autoClicker:0,autoKittenFarm:0,kittenPlanet:0};
+      upgradeCosts = {milkBowl:25,catFood:115,scratcher:700,kittenFactory:5000,cityOfKittens:30000,worldOfMeows:200000,autoClicker:2000,autoKittenFarm:15000,kittenPlanet:1000000};
+      
+      // Show notification
+      showNotification(`Prestige Level ${prestigeLevel}! Bonuses applied.`);
+      
+      // Update UI
+      updateUI();
+      updatePrestigeInfo();
+    }
+  });
+
+  // --- REVIEW SYSTEM ---
+  function submitReview() {
+    const reviewText = document.getElementById('reviewText').value.trim();
+    if (!reviewText) {
+      showNotification('Please enter a review');
+      return;
+    }
+    
+    // Send review to server
+    fetch('/submit-review', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        text: reviewText,
+        timestamp: Date.now()
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('reviewText').value = '';
+        window.userHasReviewed = true;
+        showNotification('Review submitted successfully!');
+        loadReviews();
+        checkAchievements();
+      } else {
+        showNotification('Error submitting review');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showNotification('Error submitting review');
+    });
+  }
+
+  function loadReviews() {
+    fetch('/get-reviews')
+      .then(response => response.json())
+      .then(data => {
+        const reviewsList = document.getElementById('reviewsList');
+        reviewsList.innerHTML = '';
+        
+        if (data.reviews && data.reviews.length > 0) {
+          data.reviews.slice(0, 10).forEach(review => {
+            const reviewEl = document.createElement('div');
+            reviewEl.style.border = '1px solid #f8bbd0';
+            reviewEl.style.borderRadius = '8px';
+            reviewEl.style.padding = '12px';
+            reviewEl.style.marginBottom = '10px';
+            reviewEl.innerHTML = `
+              <div style="font-weight: bold; margin-bottom: 5px;">Player Review</div>
+              <div style="margin-bottom: 5px;">${review.text}</div>
+              <div style="font-size: 12px; color: #880e4f;">${formatTime(review.timestamp)}</div>
+            `;
+            reviewsList.appendChild(reviewEl);
+          });
+        } else {
+          reviewsList.innerHTML = '<p>No reviews yet. Be the first to leave one!</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading reviews:', error);
+      });
+  }
+
+  function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  }
+</script>
+</body>
+</html>
