@@ -421,6 +421,7 @@
     <div class="shop-tab active" id="tabClickValue" onclick="showShopTab('clickValue')">Click Value</div>
     <div class="shop-tab" id="tabAuto" onclick="showShopTab('auto')">Auto Upgrades</div>
     <div class="shop-tab" id="tabBonus" onclick="showShopTab('bonus')">Bonus Upgrades</div>
+    <div class="shop-tab" id="tabOffline" onclick="showShopTab('offline')">Offline Clicks</div>
     <div class="shop-tab" id="tabReviews" onclick="showShopTab('reviews')">Reviews</div>
   </div>
   
@@ -479,6 +480,21 @@
       <div class="shop-item"><strong>Golden Paws</strong><br />+20% CPS<br />
         <button onclick="buyBonusUpgrade('goldenPaws', 0.2)" id="goldenPawsBtn">Buy for <span id="goldenPawsCost">50000</span></button>
         <div class="upgrade-count" id="goldenPawsCount">0</div>
+      </div>
+    </div>
+    
+    <div id="offlineContent" class="shop-tab-content">
+      <div class="shop-item"><strong>Offline Clicks</strong><br />+1 offline click/sec<br />
+        <button onclick="buyOfflineClick()" id="offlineClickBtn">Buy for <span id="offlineClickCost">1000</span></button>
+        <div class="upgrade-count" id="offlineClickCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Offline Boost</strong><br />+50% offline bonus<br />
+        <button onclick="buyOfflineBoost()" id="offlineBoostBtn">Buy for <span id="offlineBoostCost">5000</span></button>
+        <div class="upgrade-count" id="offlineBoostCount">0</div>
+      </div>
+      <div class="shop-item"><strong>Offline Empire</strong><br />+100% offline bonus<br />
+        <button onclick="buyOfflineEmpire()" id="offlineEmpireBtn">Buy for <span id="offlineEmpireCost">25000</span></button>
+        <div class="upgrade-count" id="offlineEmpireCount">0</div>
       </div>
     </div>
     
@@ -767,6 +783,17 @@ let extraCPSBreed = {
     scoreMultiplier: 0.20 // +20% score multiplier
   };
 
+  // Offline click system
+  let offlineClicks = 0;
+  let offlineClickCost = 1000;
+  let offlineBoost = 0;
+  let offlineBoostCost = 5000;
+  let offlineEmpire = 0;
+  let offlineEmpireCost = 25000;
+  
+  // Store last seen time
+  let lastSeenTime = 0;
+
   // -- UI elements --
   const scoreEl = document.getElementById('score');
   const clickValueEl = document.getElementById('clickValue');
@@ -855,12 +882,14 @@ let extraCPSBreed = {
     document.getElementById('clickValueContent').classList.remove('active');
     document.getElementById('autoContent').classList.remove('active');
     document.getElementById('bonusContent').classList.remove('active');
+    document.getElementById('offlineContent').classList.remove('active');
     document.getElementById('reviewsContent').classList.remove('active');
     
     // Remove active class from all tabs
     document.getElementById('tabClickValue').classList.remove('active');
     document.getElementById('tabAuto').classList.remove('active');
     document.getElementById('tabBonus').classList.remove('active');
+    document.getElementById('tabOffline').classList.remove('active');
     document.getElementById('tabReviews').classList.remove('active');
     
     // Show selected content
@@ -1183,6 +1212,9 @@ let extraCPSBreed = {
     if(document.getElementById('speedBoostCost')) document.getElementById('speedBoostCost').textContent = bonusUpgradeCosts.speedBoost;
     if(document.getElementById('doublePointsCost')) document.getElementById('doublePointsCost').textContent = bonusUpgradeCosts.doublePoints;
     if(document.getElementById('goldenPawsCost')) document.getElementById('goldenPawsCost').textContent = bonusUpgradeCosts.goldenPaws;
+    if(document.getElementById('offlineClickCost')) document.getElementById('offlineClickCost').textContent = offlineClickCost;
+    if(document.getElementById('offlineBoostCost')) document.getElementById('offlineBoostCost').textContent = offlineBoostCost;
+    if(document.getElementById('offlineEmpireCost')) document.getElementById('offlineEmpireCost').textContent = offlineEmpireCost;
     
     // Update button states
     if(document.getElementById('milkBowlBtn')) document.getElementById('milkBowlBtn').disabled = kittens < upgradeCosts.milkBowl;
@@ -1197,6 +1229,9 @@ let extraCPSBreed = {
     if(document.getElementById('speedBoostBtn')) document.getElementById('speedBoostBtn').disabled = kittens < bonusUpgradeCosts.speedBoost;
     if(document.getElementById('doublePointsBtn')) document.getElementById('doublePointsBtn').disabled = kittens < bonusUpgradeCosts.doublePoints;
     if(document.getElementById('goldenPawsBtn')) document.getElementById('goldenPawsBtn').disabled = kittens < bonusUpgradeCosts.goldenPaws;
+    if(document.getElementById('offlineClickBtn')) document.getElementById('offlineClickBtn').disabled = kittens < offlineClickCost;
+    if(document.getElementById('offlineBoostBtn')) document.getElementById('offlineBoostBtn').disabled = kittens < offlineBoostCost;
+    if(document.getElementById('offlineEmpireBtn')) document.getElementById('offlineEmpireBtn').disabled = kittens < offlineEmpireCost;
     
     // Update upgrade counts
     if(document.getElementById('milkBowlCount')) document.getElementById('milkBowlCount').textContent = upgrades.milkBowl;
@@ -1211,6 +1246,9 @@ let extraCPSBreed = {
     if(document.getElementById('speedBoostCount')) document.getElementById('speedBoostCount').textContent = bonusUpgrades.speedBoost;
     if(document.getElementById('doublePointsCount')) document.getElementById('doublePointsCount').textContent = bonusUpgrades.doublePoints;
     if(document.getElementById('goldenPawsCount')) document.getElementById('goldenPawsCount').textContent = bonusUpgrades.goldenPaws;
+    if(document.getElementById('offlineClickCount')) document.getElementById('offlineClickCount').textContent = offlineClicks;
+    if(document.getElementById('offlineBoostCount')) document.getElementById('offlineBoostCount').textContent = offlineBoost;
+    if(document.getElementById('offlineEmpireCount')) document.getElementById('offlineEmpireCount').textContent = offlineEmpire;
     
     // Update prestige button state
     const requirement = Math.pow(10, 6 + prestigeLevel);
@@ -1279,6 +1317,65 @@ let extraCPSBreed = {
     }
   }
   
+  // Offline click system
+  function calculateOfflineBonus() {
+    const now = Date.now();
+    const offlineTime = (now - lastSeenTime) / 1000; // in seconds
+    
+    if (offlineTime <= 0) return 0;
+    
+    // Base offline clicks per second
+    let baseClicksPerSecond = offlineClicks;
+    
+    // Apply boosts
+    let boostMultiplier = 1 + (offlineBoost * 0.5) + (offlineEmpire);
+    
+    // Calculate total offline bonus
+    const offlineBonus = baseClicksPerSecond * offlineTime * boostMultiplier;
+    
+    return offlineBonus;
+  }
+  
+  // Show offline bonus notification
+  function showOfflineBonus() {
+    const bonus = calculateOfflineBonus();
+    if (bonus > 0) {
+      showNotification(`Offline Bonus: +${Math.floor(bonus)} kittens`);
+      kittens += bonus;
+      updateUI();
+    }
+  }
+  
+  // Buy offline click upgrade
+  function buyOfflineClick() {
+    if (kittens >= offlineClickCost) {
+      kittens -= offlineClickCost;
+      offlineClicks++;
+      offlineClickCost = Math.ceil(offlineClickCost * 1.5);
+      updateUI();
+    }
+  }
+  
+  // Buy offline boost upgrade
+  function buyOfflineBoost() {
+    if (kittens >= offlineBoostCost) {
+      kittens -= offlineBoostCost;
+      offlineBoost++;
+      offlineBoostCost = Math.ceil(offlineBoostCost * 1.5);
+      updateUI();
+    }
+  }
+  
+  // Buy offline empire upgrade
+  function buyOfflineEmpire() {
+    if (kittens >= offlineEmpireCost) {
+      kittens -= offlineEmpireCost;
+      offlineEmpire++;
+      offlineEmpireCost = Math.ceil(offlineEmpireCost * 1.5);
+      updateUI();
+    }
+  }
+  
   setInterval(() => {
     let breedCPS = extraCPSBreed[selectedBreed] || 0;
     const totalCPS = upgrades.autoClicker * 5 + upgrades.autoKittenFarm * 7 + upgrades.kittenPlanet * 20 + breedCPS;
@@ -1330,7 +1427,7 @@ let extraCPSBreed = {
   // Halloween cat unlock function removed - now only available during Halloween season
   
   function exportSave() {
-    const saveData = { kittens, clickValue, upgrades, upgradeCosts, selectedBreed, breedsUnlocked, achievementsData, userSettings, bonusUpgrades, bonusUpgradeCosts, prestigeLevel };
+    const saveData = { kittens, clickValue, upgrades, upgradeCosts, selectedBreed, breedsUnlocked, achievementsData, userSettings, bonusUpgrades, bonusUpgradeCosts, prestigeLevel, offlineClicks, offlineClickCost, offlineBoost, offlineBoostCost, offlineEmpire, offlineEmpireCost, lastSeenTime };
     const saveString = btoa(JSON.stringify(saveData));
     const textarea = document.getElementById('saveCodeBox');
     textarea.value = saveString;
@@ -1360,6 +1457,13 @@ let extraCPSBreed = {
       if (data.bonusUpgrades) bonusUpgrades = data.bonusUpgrades;
       if (data.bonusUpgradeCosts) bonusUpgradeCosts = data.bonusUpgradeCosts;
       if (data.prestigeLevel !== undefined) prestigeLevel = data.prestigeLevel;
+      if (data.offlineClicks !== undefined) offlineClicks = data.offlineClicks;
+      if (data.offlineClickCost !== undefined) offlineClickCost = data.offlineClickCost;
+      if (data.offlineBoost !== undefined) offlineBoost = data.offlineBoost;
+      if (data.offlineBoostCost !== undefined) offlineBoostCost = data.offlineBoostCost;
+      if (data.offlineEmpire !== undefined) offlineEmpire = data.offlineEmpire;
+      if (data.offlineEmpireCost !== undefined) offlineEmpireCost = data.offlineEmpireCost;
+      if (data.lastSeenTime !== undefined) lastSeenTime = data.lastSeenTime;
       updateUI();
       renderAchievements();
       renderBreeds();
@@ -1420,6 +1524,13 @@ let extraCPSBreed = {
       bonusUpgrades = { speedBoost: 0, doublePoints: 0, goldenPaws: 0 };
       bonusUpgradeCosts = { speedBoost: 5000, doublePoints: 15000, goldenPaws: 50000 };
       prestigeLevel = 0;
+      offlineClicks = 0;
+      offlineClickCost = 1000;
+      offlineBoost = 0;
+      offlineBoostCost = 5000;
+      offlineEmpire = 0;
+      offlineEmpireCost = 25000;
+      lastSeenTime = 0;
       userSettings = {theme:"pink", floatScore:true, notifVolume:1, disableAnimations:false};
       applyTheme(userSettings.theme);
       updateUI(); renderAchievements(); renderBreeds(); updatePrestigeInfo();
@@ -1451,6 +1562,13 @@ let extraCPSBreed = {
         if (data.bonusUpgrades) bonusUpgrades = data.bonusUpgrades;
         if (data.bonusUpgradeCosts) bonusUpgradeCosts = data.bonusUpgradeCosts;
         if (data.prestigeLevel !== undefined) prestigeLevel = data.prestigeLevel;
+        if (data.offlineClicks !== undefined) offlineClicks = data.offlineClicks;
+        if (data.offlineClickCost !== undefined) offlineClickCost = data.offlineClickCost;
+        if (data.offlineBoost !== undefined) offlineBoost = data.offlineBoost;
+        if (data.offlineBoostCost !== undefined) offlineBoostCost = data.offlineBoostCost;
+        if (data.offlineEmpire !== undefined) offlineEmpire = data.offlineEmpire;
+        if (data.offlineEmpireCost !== undefined) offlineEmpireCost = data.offlineEmpireCost;
+        if (data.lastSeenTime !== undefined) lastSeenTime = data.lastSeenTime;
       }
     } catch (e) {}
     try {
@@ -1467,11 +1585,19 @@ let extraCPSBreed = {
     updatePrestigeInfo();
     updatePlayerCount();
     startPlayerCountStream(); // Start real-time updates
+    
+    // Check for offline bonus
+    if (lastSeenTime > 0) {
+      showOfflineBonus();
+    }
+    
+    // Update last seen time
+    lastSeenTime = Date.now();
   });
   
   setInterval(() => {
     try {
-      const saveData = { kittens, clickValue, upgrades, upgradeCosts, selectedBreed, breedsUnlocked, achievementsData, userSettings, bonusUpgrades, bonusUpgradeCosts, prestigeLevel };
+      const saveData = { kittens, clickValue, upgrades, upgradeCosts, selectedBreed, breedsUnlocked, achievementsData, userSettings, bonusUpgrades, bonusUpgradeCosts, prestigeLevel, offlineClicks, offlineClickCost, offlineBoost, offlineBoostCost, offlineEmpire, offlineEmpireCost, lastSeenTime };
       localStorage.setItem('kittenSave', btoa(JSON.stringify(saveData)));
     } catch (e) {}
   }, 5000);
@@ -1706,6 +1832,11 @@ let extraCPSBreed = {
     const date = new Date(timestamp);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   }
+  
+  // Save last seen time on page unload
+  window.addEventListener('beforeunload', () => {
+    lastSeenTime = Date.now();
+  });
 </script>
 </body>
 </html>
